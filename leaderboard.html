@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boon League Leaderboard</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        table { border-collapse: collapse; width: 50%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Boon League Leaderboard</h1>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Mu</th>
+            <th>Sigma</th>
+            <th>Conservative Score</th>
+        </tr>
+        {% for i, player in enumerate(players, start=1) %}
+        <tr>
+            <td>{{ i }}</td>
+            <td>{{ player.name }}</td>
+            <td>{{ "%.2f"|format(player.mu) }}</td>
+            <td>{{ "%.2f"|format(player.sigma) }}</td>
+            <td>{{ "%.2f"|format(player.score) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
