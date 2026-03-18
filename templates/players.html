@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Boon League Leaderboard</title>
+    <title>Existing Players</title>
     <style>
         body { font-family: Arial; margin: 40px; }
         table { border-collapse: collapse; width: 50%; }
@@ -11,24 +11,17 @@
     </style>
 </head>
 <body>
-    <h1>Boon League Leaderboard</h1>
-    <a href="/players">Existing Players</a>
-    <a href="/create-player">Create New Player</a>
+    <h1>Existing Players</h1>
+    <a href="/">Back to Leaderboard</a>
     <table>
         <tr>
-            <th>Rank</th>
             <th>Name</th>
-            <th>Mu</th>
-            <th>Sigma</th>
-            <th>Conservative Score</th>
+            <th>Added At</th>
         </tr>
         {% for player in players %}
         <tr>
-            <td>{{ loop.index }}</td>
             <td>{{ player.name }}</td>
-            <td>{{ "%.2f"|format(player.mu) }}</td>
-            <td>{{ "%.2f"|format(player.sigma) }}</td>
-            <td>{{ "%.2f"|format(player.score) }}</td>
+            <td>{{ player.added_at }}</td>
         </tr>
         {% endfor %}
     </table>
