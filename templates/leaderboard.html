@@ -19,13 +19,13 @@
             <th>Sigma</th>
             <th>Conservative Score</th>
         </tr>
-        {% for i, player in enumerate(players, start=1) %}
+        {% for player in players %}
         <tr>
-            <td>{{ i }}</td>
+            <td>{{ loop.index }}</td>
             <td>{{ player.name }}</td>
             <td>{{ "%.2f"|format(player.mu) }}</td>
             <td>{{ "%.2f"|format(player.sigma) }}</td>
-            <td>{{ "%.2f"|format(player.score) }}</td>
+            #<td>{{ "%.2f"|format(player.score) }}</td>
         </tr>
         {% endfor %}
     </table>
