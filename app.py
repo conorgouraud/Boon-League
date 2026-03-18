@@ -15,6 +15,7 @@ def load_ratings():
                 "sigma": float(row["sigma"]),
                 "score": float(row["mu"]) - 3*float(row["sigma"])
             })
+    # sort by conservative score
     players.sort(key=lambda x: x["score"], reverse=True)
     return players
 
