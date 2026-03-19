@@ -2,9 +2,9 @@ from rating import *
 from create_delete_players import *
 from create_delete_players import *
 
-add_player("A")
+add_player("Addddddd", "US")
 #delete_player("A")
-add_player_sqlite("manny", "France")
+
 
 #reset_ratings()
 
