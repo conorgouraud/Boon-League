@@ -1,31 +1,36 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-import sqlite3
 import os
 import pycountry
 from datetime import datetime
 
-from rating import *
-from create_delete_players import *
+# Import your rewritten Postgres modules
+from ratings_db import load_ratings
+from players_db import load_players, add_player
 
 app = Flask(__name__)
 app.secret_key = "1234"
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(SCRIPT_DIR, "boonleague.db")
-
-
-def get_connection():
-    return sqlite3.connect(DB_PATH)
+# ------------------- ROUTES -------------------
 
 @app.route("/")
 def leaderboard():
     players = load_ratings()
-    return render_template("leaderboard.html", players=players)
+
+    # Convert dict → sorted list for template
+    sorted_players = sorted(
+        players.values(),
+        key=lambda p: p["score"],
+        reverse=True
+    )
+
+    return render_template("leaderboard.html", players=sorted_players)
+
 
 @app.route("/players")
 def existing_players():
     players = load_players()
     return render_template("players.html", players=players)
+
 
 @app.route("/create-player", methods=["GET", "POST"])
 def create_player():
@@ -41,30 +46,21 @@ def create_player():
             flash("Please select a country", "error")
             return redirect(url_for("create_player"))
 
-        conn = get_connection()
-        cur = conn.cursor()
+        # Use your Postgres add_player() function
+        try:
+            add_player(name, country)
+            flash(f"Player '{name}' added successfully!", "success")
+        except Exception as e:
+            flash(f"Error adding player: {str(e)}", "error")
 
-        cur.execute("SELECT name FROM players WHERE LOWER(name) = LOWER(?)", (name,))
-        exists = cur.fetchone()
-
-        if exists:
-            flash(f"Player '{name}' already exists!", "error")
-            conn.close()
-            return redirect(url_for("create_player"))
-
-        cur.execute("""
-            INSERT INTO players (name, country, added_at)
-            VALUES (?, ?, ?)
-        """, (name, country, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
-        conn.commit()
-        conn.close()
-
-        flash(f"Player '{name}' added successfully!", "success")
         return redirect(url_for("existing_players"))
 
+    # Full country list
     countries = [c.name for c in pycountry.countries]
     return render_template("create_player.html", countries=countries)
+
+
+# ------------------- MAIN -------------------
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=0)

@@ -1,36 +1,40 @@
-import sqlite3
-from datetime import datetime
+import psycopg2
 import os
+from datetime import datetime
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-db_path = os.path.join(SCRIPT_DIR, "boonleague.db")
+# Render provides DATABASE_URL in the environment
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
-    return sqlite3.connect(db_path)
+    return psycopg2.connect(DATABASE_URL)
 
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS players (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
             country TEXT,
-            added_at TEXT
+            added_at TIMESTAMP NOT NULL
         )
     """)
+
     conn.commit()
     conn.close()
 
 def load_players():
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT name, country, added_at FROM players")
+
+    cur.execute("SELECT name, country, added_at FROM players ORDER BY name ASC")
     rows = cur.fetchall()
+
     conn.close()
 
     return [
-        {"name": r[0], "country": r[1], "added_at": r[2]}
+        {"name": r[0], "country": r[1], "added_at": r[2].strftime("%Y-%m-%d %H:%M:%S")}
         for r in rows
     ]
 
@@ -40,12 +44,13 @@ def add_player(name, country=None):
 
     try:
         cur.execute(
-            "INSERT INTO players (name, country, added_at) VALUES (?, ?, ?)",
-            (name, country, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            "INSERT INTO players (name, country, added_at) VALUES (%s, %s, %s)",
+            (name, country, datetime.now())
         )
         conn.commit()
         print(f"Added {name}.")
-    except sqlite3.IntegrityError:
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
         print(f"{name} already exists.")
     finally:
         conn.close()
@@ -54,7 +59,7 @@ def delete_player(name):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM players WHERE name = ?", (name,))
+    cur.execute("DELETE FROM players WHERE name = %s", (name,))
     conn.commit()
 
     if cur.rowcount == 0:
@@ -67,7 +72,9 @@ def delete_player(name):
 def delete_all_players():
     conn = get_connection()
     cur = conn.cursor()
+
     cur.execute("DELETE FROM players")
     conn.commit()
     conn.close()
+
     print("All players deleted.")
