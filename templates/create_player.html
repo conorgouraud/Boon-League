@@ -27,6 +27,17 @@
     <form method="post">
         <label for="name">Player Name:</label>
         <input type="text" name="name" id="name" required>
+
+        <br><br>
+        <label for="country">Country:</label>
+        <select name="country" id="country" required>
+            <option value="">-- Select Country --</option>
+            {% for c in countries %}
+                <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
         <input type="submit" value="Add Player">
     </form>
 </body>

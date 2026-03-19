@@ -1,61 +1,73 @@
-import csv
+import sqlite3
 from datetime import datetime
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-players_csv = os.path.join(SCRIPT_DIR, "players.csv")
+db_path = os.path.join(SCRIPT_DIR, "boonleague.db")
+
+def get_connection():
+    return sqlite3.connect(db_path)
+
+def init_db():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS players (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            country TEXT,
+            added_at TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
 
 def load_players():
-    players = []
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT name, country, added_at FROM players")
+    rows = cur.fetchall()
+    conn.close()
+
+    return [
+        {"name": r[0], "country": r[1], "added_at": r[2]}
+        for r in rows
+    ]
+
+def add_player(name, country=None):
+    conn = get_connection()
+    cur = conn.cursor()
+
     try:
-        with open(players_csv, newline="") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                players.append(row)
-    except FileNotFoundError:
-        pass
-    return players
-
-def save_players(players):
-    with open(players_csv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "added_at"])
-        writer.writeheader()
-        for player in players:
-            writer.writerow(player)
-
-def add_player(name):
-    players = load_players()
-
-    if any(p["name"] == name for p in players):
+        cur.execute(
+            "INSERT INTO players (name, country, added_at) VALUES (?, ?, ?)",
+            (name, country, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        conn.commit()
+        print(f"Added {name}.")
+    except sqlite3.IntegrityError:
         print(f"{name} already exists.")
-        return
-
-    new_player = {
-        "name": name,
-        "added_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    with open(players_csv, "a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "added_at"])
-        if f.tell() == 0:  
-            writer.writeheader()
-        writer.writerow(new_player)
-
-    print(f"Added {name}.")
+    finally:
+        conn.close()
 
 def delete_player(name):
-    players = load_players()
-    new_players = [p for p in players if p["name"] != name]
+    conn = get_connection()
+    cur = conn.cursor()
 
-    if len(new_players) == len(players):
+    cur.execute("DELETE FROM players WHERE name = ?", (name,))
+    conn.commit()
+
+    if cur.rowcount == 0:
         print(f"{name} does not exist.")
-        return
+    else:
+        print(f"Deleted {name}.")
 
-    save_players(new_players)
-    print(f"Deleted {name}.")
+    conn.close()
 
 def delete_all_players():
-    with open(players_csv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "added_at"])
-        writer.writeheader()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM players")
+    conn.commit()
+    conn.close()
     print("All players deleted.")

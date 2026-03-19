@@ -1,120 +1,141 @@
-import csv
+import sqlite3
 import trueskill
 import os
-
 from datetime import datetime
-from create_delete_players import *
 
 env = trueskill.TrueSkill(draw_probability=0.0)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PLAYERS_FILE = os.path.join(SCRIPT_DIR, "players.csv")
-RATINGS_FILE = os.path.join(SCRIPT_DIR, "ratings.csv")
+DB_PATH = os.path.join(SCRIPT_DIR, "boonleague.db")
+
+def get_connection():
+    return sqlite3.connect(DB_PATH)
+
+
+def load_players():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM players")
+    rows = cur.fetchall()
+    conn.close()
+    return [{"name": r[0]} for r in rows]
+
 
 def load_ratings():
-    ratings = {}
-    try:
-        with open(RATINGS_FILE, newline="") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                ratings[row["name"]] = trueskill.Rating(
-                    mu=float(row["mu"]),
-                    sigma=float(row["sigma"])
-                )
-    except FileNotFoundError:
-        pass
-    return ratings
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT name, mu, sigma FROM ratings")
+    rows = cur.fetchall()
+    conn.close()
+
+    players = []
+    for name, mu, sigma in rows:
+        mu = float(mu)
+        sigma = float(sigma)
+        score = mu - 3 * sigma
+
+        players.append({
+            "name": name,
+            "mu": mu,
+            "sigma": sigma,
+            "score": score
+        })
+
+    players.sort(key=lambda x: x["score"], reverse=True)
+    return players
 
 
-def save_ratings(ratings):
-    with open(RATINGS_FILE, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["name", "mu", "sigma"])
-        for name, rating in ratings.items():
-            writer.writerow([name, rating.mu, rating.sigma])
+def save_rating_to_db(name, rating):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO ratings (name, mu, sigma)
+        VALUES (?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            mu = excluded.mu,
+            sigma = excluded.sigma
+    """, (name, rating.mu, rating.sigma))
+    conn.commit()
+    conn.close()
 
-
-# ------------------- Record Game -------------------
 
 def record_game(ranking):
     """
     ranking: list of player names in finishing order
-    Example:
-        ["Alice", "Bob", "Charlie"]  # Alice won
+    Example: ["Alice", "Bob", "Charlie"]
     """
-
-    # Step 1: Load existing players
     existing_players = load_players()
     existing_names = [p["name"] for p in existing_players]
 
-    # Step 2: Check if all players exist in players.csv
-    missing_players = [name for name in ranking if name not in existing_names]
-    if missing_players:
-        print("These players do not exist in players.csv:", ", ".join(missing_players))
+    missing = [name for name in ranking if name not in existing_names]
+    if missing:
+        print("These players do not exist:", ", ".join(missing))
         return
 
-    # Step 3: Load current ratings
     ratings = load_ratings()
-
-    # Step 4: Add default rating for any player missing in ratings.csv
     for name in ranking:
-        # Use the exact name as it appears in players.csv
-        players_csv_name = next(p["name"] for p in existing_players if p["name"] == name)
-        if players_csv_name not in ratings:
-            ratings[players_csv_name] = env.create_rating()
+        if name not in ratings:
+            ratings[name] = env.create_rating()
 
-    # Step 5: Prepare teams and ranks
-    teams = [[ratings[next(p["name"] for p in existing_players if p["name"] == name)]] for name in ranking]
+    teams = [[ratings[name]] for name in ranking]
     ranks = list(range(len(ranking)))
+
     new_ratings = env.rate(teams, ranks=ranks)
 
-    # Step 6: Update ratings
     for i, name in enumerate(ranking):
-        players_csv_name = next(p["name"] for p in existing_players if p["name"] == name)
-        ratings[players_csv_name] = new_ratings[i][0]
+        updated_rating = new_ratings[i][0]
+        ratings[name] = updated_rating
+        save_rating_to_db(name, updated_rating)
 
-    # Step 7: Save back to CSV
-    save_ratings(ratings)
-
-    # Step 8: Print updated ratings
     print("Updated ratings:")
     for name in ranking:
-        players_csv_name = next(p["name"] for p in existing_players if p["name"] == name)
-        r = ratings[players_csv_name]
-        print(f"{players_csv_name}: mu={r.mu:.2f}, sigma={r.sigma:.2f}")
+        r = ratings[name]
+        print(f"{name}: mu={r.mu:.2f}, sigma={r.sigma:.2f}")
 
 # ------------------- Rating Management -------------------
 
 def reset_ratings():
-    ratings = load_ratings()
-    for name in ratings:
-        ratings[name] = env.create_rating()
-    save_ratings(ratings)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE ratings SET mu = ?, sigma = ?", 
+                (env.mu, env.sigma))
+    conn.commit()
+    conn.close()
     print("All ratings reset to default.")
 
 
 def add_rating(name):
-    ratings = load_ratings()
-    if name in ratings:
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT name FROM ratings WHERE name = ?", (name,))
+    if cur.fetchone():
         print(f"{name} already exists.")
+        conn.close()
         return
-    ratings[name] = env.create_rating()
-    save_ratings(ratings)
+
+    rating = env.create_rating()
+    cur.execute("INSERT INTO ratings (name, mu, sigma) VALUES (?, ?, ?)",
+                (name, rating.mu, rating.sigma))
+    conn.commit()
+    conn.close()
     print(f"Added {name} with default rating.")
 
 
 def delete_rating(name):
-    ratings = load_ratings()
-    if name not in ratings:
-        print(f"{name} does not exist.")
-        return
-    del ratings[name]
-    save_ratings(ratings)
-    print(f"Deleted {name}.")
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM ratings WHERE name = ?", (name,))
+    conn.commit()
+    conn.close()
+    print(f"Deleted rating for {name}.")
 
 
 def delete_all_ratings():
-    with open(RATINGS_FILE, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["name", "mu", "sigma"])
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM ratings")
+    conn.commit()
+    conn.close()
     print("All ratings deleted.")

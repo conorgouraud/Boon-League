@@ -16,11 +16,13 @@
     <table>
         <tr>
             <th>Name</th>
+            <th>Country</th>
             <th>Added At</th>
         </tr>
         {% for player in players %}
         <tr>
             <td>{{ player.name }}</td>
+            <td>{{ player.country }}</td>
             <td>{{ player.added_at }}</td>
         </tr>
         {% endfor %}
