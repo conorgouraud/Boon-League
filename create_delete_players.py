@@ -2,8 +2,7 @@ import psycopg2
 import os
 from datetime import datetime
 
-# Render provides DATABASE_URL in the environment
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("postgresql://boonleague_db_user:9gJagU3PNzvf9iCD7BBXworXyaQc339Z@dpg-d6u1au7kijhs73feje20-a/boonleague_db")
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
