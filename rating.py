@@ -11,7 +11,23 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
-# ------------------- Player Loading -------------------
+
+def init_ratings_table():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS ratings (
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            mu FLOAT NOT NULL,
+            sigma FLOAT NOT NULL
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
 
 def load_players():
     conn = get_connection()

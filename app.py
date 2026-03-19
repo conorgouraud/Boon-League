@@ -3,9 +3,9 @@ import os
 import pycountry
 from datetime import datetime
 
-# Import your rewritten Postgres modules
-from ratings_db import load_ratings
-from players_db import load_players, add_player
+
+from rating import *
+from create_delete_players import *
 
 app = Flask(__name__)
 app.secret_key = "1234"
@@ -46,7 +46,6 @@ def create_player():
             flash("Please select a country", "error")
             return redirect(url_for("create_player"))
 
-        # Use your Postgres add_player() function
         try:
             add_player(name, country)
             flash(f"Player '{name}' added successfully!", "success")
@@ -63,4 +62,6 @@ def create_player():
 # ------------------- MAIN -------------------
 
 if __name__ == "__main__":
+    init_players_db()
+    init_ratings_table()
     app.run(debug=True, host="0.0.0.0", port=0)

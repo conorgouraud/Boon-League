@@ -8,7 +8,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
-def init_db():
+def init_players_db():
     conn = get_connection()
     cur = conn.cursor()
 
