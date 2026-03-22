@@ -10,13 +10,10 @@ from create_delete_players import *
 app = Flask(__name__)
 app.secret_key = "1234"
 
-# ------------------- ROUTES -------------------
-
 @app.route("/")
 def leaderboard():
     players = load_ratings()
 
-    # Convert dict → sorted list for template
     sorted_players = sorted(
         players.values(),
         key=lambda p: p["score"],
@@ -54,12 +51,9 @@ def create_player():
 
         return redirect(url_for("existing_players"))
 
-    # Full country list
     countries = [c.name for c in pycountry.countries]
     return render_template("create_player.html", countries=countries)
 
-
-# ------------------- MAIN -------------------
 
 if __name__ == "__main__":
     init_players_db()
