@@ -1,2 +1,4 @@
-sqlite3.exe
-*.exe
+test.py
+__pycache__/
+*.pyc
+*.pyo
