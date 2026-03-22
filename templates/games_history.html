@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Games History</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        table { border-collapse: collapse; width: 80%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f0f0f0; }
+        a { display: inline-block; margin-bottom: 20px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Games History</h1>
+
+    <a href="/">Leaderboard</a>
+    <a href="/record-game">Record Game</a>
+
+    <table>
+        <tr>
+            <th>Players (in order)</th>
+            <th>Comment</th>
+            <th>Played At</th>
+        </tr>
+
+        {% for game in games %}
+        <tr>
+            <td>
+                {% for player in game.positions %}
+                    {{ loop.index }}. {{ player }}<br>
+                {% endfor %}
+            </td>
+            <td>{{ game.comment or "-" }}</td>
+            <td>{{ game.played_at }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+</body>
+</html>

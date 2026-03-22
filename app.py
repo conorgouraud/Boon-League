@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import pycountry
-from leaderboard import load_leaderboard, add_player
-from games import record_game
+from leaderboard import *
+from games import *
+import psycopg2
+import os
 
 app = Flask(__name__)
 app.secret_key = "1234"
@@ -50,42 +52,63 @@ def create_player_view():
 @app.route("/record-game", methods=["GET", "POST"])
 def record_game_view():
     if request.method == "POST":
+        ranking = []
+        raw_inputs = []
 
-        raw_players = []
+        # capture ALL inputs (including blanks)
         for i in range(1, 8):
             name = request.form.get(f"player{i}", "").strip()
-            raw_players.append(name if name else None)
+            raw_inputs.append(name)
 
-        # Remove trailing empty
-        while raw_players and raw_players[-1] is None:
-            raw_players.pop()
+        # detect gaps BEFORE filtering
+        for i in range(len(raw_inputs)):
+            if raw_inputs[i] and any(raw_inputs[j] == "" for j in range(i)):
+                flash(f"Error: Cannot fill Player {i+1} before filling previous positions.", "error")
+                return redirect(url_for("record_game_view"))
+
+        # remove blanks after validation
+        ranking = [name for name in raw_inputs if name]
 
         comment = request.form.get("comment", "").strip() or None
 
+        if len(ranking) < 3:
+            flash("Error: At least 3 players required.", "error")
+            return redirect(url_for("record_game_view"))
+
         try:
-            # Gap validation BEFORE filtering
-            for i in range(1, len(raw_players)):
-                if raw_players[i] and not raw_players[i-1]:
-                    raise ValueError(f"Cannot fill position {i+1} if position {i} is empty.")
-
-            ranking = [p for p in raw_players if p]
-
-            missing_players = record_game(ranking, comment)
-
-            if missing_players:
-                flash(f"New players created: {', '.join(missing_players)}", "success")
-
+            record_game(ranking, comment)
             flash("Game recorded successfully!", "success")
-
-        except ValueError as e:
-            flash(str(e), "error")
-
         except Exception as e:
-            flash(f"Unexpected error: {str(e)}", "error")
+            flash(f"Error recording game: {str(e)}", "error")
 
-        return redirect(url_for("record_game_view"))
+        return redirect(url_for("show_leaderboard"))
 
     return render_template("record_game.html")
+
+# ------------------- GAMES HISTORY -------------------
+@app.route("/games-history")
+def games_history():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT pos1, pos2, pos3, pos4, pos5, pos6, pos7, comment, played_at
+        FROM games
+        ORDER BY played_at DESC
+    """)
+
+    rows = cur.fetchall()
+    conn.close()
+
+    games = []
+    for r in rows:
+        games.append({
+            "positions": [p for p in r[:7] if p],
+            "comment": r[7],
+            "played_at": r[8].strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+    return render_template("games_history.html", games=games)
 
 # ------------------- RUN -------------------
 if __name__ == "__main__":
