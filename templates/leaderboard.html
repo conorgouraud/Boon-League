@@ -4,16 +4,17 @@
     <title>Boon League Leaderboard</title>
     <style>
         body { font-family: Arial; margin: 40px; }
-        table { border-collapse: collapse; width: 50%; }
+        table { border-collapse: collapse; width: 70%; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
         th { background-color: #f0f0f0; }
-        a { display: inline-block; margin-bottom: 20px; }
+        a { display: inline-block; margin-bottom: 20px; margin-right: 10px; }
     </style>
 </head>
 <body>
     <h1>Boon League Leaderboard</h1>
     <a href="/players">Existing Players</a>
     <a href="/create-player">Create New Player</a>
+    <a href="/record-game">Record New Game</a>
     <table>
         <tr>
             <th>Rank</th>
@@ -21,6 +22,8 @@
             <th>Mu</th>
             <th>Sigma</th>
             <th>Conservative Score</th>
+            <th>Games Played</th>
+            <th>Last Updated</th>
         </tr>
         {% for player in players %}
         <tr>
@@ -28,7 +31,9 @@
             <td>{{ player.name }}</td>
             <td>{{ "%.2f"|format(player.mu) }}</td>
             <td>{{ "%.2f"|format(player.sigma) }}</td>
-            <td>{{ "%.2f"|format(player.score) }}</td>
+            <td>{{ "%.2f"|format(player.conservative_score) }}</td>
+            <td>{{ player.games_played }}</td>
+            <td>{{ player.last_updated_at }}</td>
         </tr>
         {% endfor %}
     </table>

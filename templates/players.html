@@ -17,13 +17,13 @@
         <tr>
             <th>Name</th>
             <th>Country</th>
-            <th>Added At</th>
+            <th>Created At</th>
         </tr>
         {% for player in players %}
         <tr>
             <td>{{ player.name }}</td>
-            <td>{{ player.country }}</td>
-            <td>{{ player.added_at }}</td>
+            <td>{{ player.country or "" }}</td>
+            <td>{{ player.created_at }}</td>
         </tr>
         {% endfor %}
     </table>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Record Game</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+
+        input, textarea {
+            width: 300px;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+
+        button {
+            padding: 5px 10px;
+        }
+
+        a {
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        /* Flash message styles */
+        .flash {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            width: 300px;
+        }
+
+        .flash.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .flash.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Record a Game</h1>
+
+    <a href="/">Back to Leaderboard</a>
+
+    <!-- ✅ FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        {% for i in range(1,8) %}
+        <div>
+            <label>Player {{ i }}:</label><br>
+            <input type="text" name="player{{ i }}" placeholder="Player {{ i }} name">
+        </div>
+        {% endfor %}
+
+        <div>
+            <label>Comment (optional):</label><br>
+            <textarea name="comment" placeholder="Add a comment about the game"></textarea>
+        </div>
+
+        <button type="submit">Record Game</button>
+    </form>
+
+</body>
+</html>
